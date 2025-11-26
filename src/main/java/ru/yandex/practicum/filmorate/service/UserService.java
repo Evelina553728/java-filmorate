@@ -23,7 +23,7 @@ public class UserService {
 
     public User update(User user) {
         if (!users.containsKey(user.getId())) {
-            throw new ValidationException("Пользователь с ID=" + user.getId() + " не найден");
+            throw new RuntimeException("Пользователь с ID=" + user.getId() + " не найден");
         }
         users.put(user.getId(), user);
         log.info("Обновлён пользователь: {}", user);
