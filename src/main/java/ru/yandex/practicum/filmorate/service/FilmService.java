@@ -1,8 +1,9 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
@@ -28,7 +29,10 @@ public class FilmService {
 
     public Film update(Film film) {
         if (!films.containsKey(film.getId())) {
-            throw new ValidationException("Фильм с ID=" + film.getId() + " не найден");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Фильм с ID=" + film.getId() + " не найден"
+            );
         }
         validateFilm(film);
         films.put(film.getId(), film);
@@ -42,7 +46,10 @@ public class FilmService {
 
     private void validateFilm(Film film) {
         if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Дата релиза не может быть раньше 28 декабря 1895 года"
+            );
         }
     }
 }

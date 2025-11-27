@@ -32,7 +32,7 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
-	@DisplayName("Создание корректного фильма")
+	@DisplayName("Создание корректного фильма возвращает 200 OK")
 	void shouldCreateValidFilm() throws Exception {
 		Film film = new Film();
 		film.setName("Test Film");
@@ -49,7 +49,7 @@ class FilmorateApplicationTests {
 	}
 
 	@Test
-	@DisplayName("Создание фильма с ошибочной датой релиза")
+	@DisplayName("Создание фильма с недопустимой датой релиза возвращает 400 Bad Request")
 	void shouldRejectInvalidFilmReleaseDate() throws Exception {
 		Film film = new Film();
 		film.setName("Old Film");
@@ -60,14 +60,39 @@ class FilmorateApplicationTests {
 		mockMvc.perform(post("/films")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(objectMapper.writeValueAsString(film)))
-				.andExpect(status().is4xxClientError());
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
-	@DisplayName("Создание корректного пользователя")
+	@DisplayName("Создание корректного пользователя возвращает 200 OK")
 	void shouldCreateValidUser() throws Exception {
 		User user = new User();
 		user.setEmail("mail@test.com");
 		user.setLogin("userLogin");
+		user.setName("User Name");
+		user.setBirthday(LocalDate.of(1999, 3, 15));
+
+		mockMvc.perform(post("/users")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(user)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(1))
+				.andExpect(jsonPath("$.email").value("mail@test.com"));
+	}
+
+	@Test
+	@DisplayName("Обновление несуществующего пользователя возвращает 404 Not Found")
+	void shouldReturnNotFoundForUnknownUser() throws Exception {
+		User user = new User();
+		user.setId(999); // такого нет
+		user.setEmail("new@test.com");
+		user.setLogin("login");
+		user.setName("Test");
+		user.setBirthday(LocalDate.of(1990, 1, 1));
+
+		mockMvc.perform(put("/users")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(user)))
+				.andExpect(status().isNotFound());
 	}
 }

@@ -1,9 +1,10 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 import java.util.*;
 
@@ -23,7 +24,10 @@ public class UserService {
 
     public User update(User user) {
         if (!users.containsKey(user.getId())) {
-            throw new NotFoundException("Пользователь с ID=" + user.getId() + " не найден");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Пользователь с ID=" + user.getId() + " не найден"
+            );
         }
         users.put(user.getId(), user);
         log.info("Обновлён пользователь: {}", user);
