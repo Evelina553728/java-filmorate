@@ -22,21 +22,33 @@ public class ErrorHandler {
         );
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public Map<String, Object> handleResponseStatus(ResponseStatusException e) {
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, Object> handleNotFound(NotFoundException e) {
         return Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", e.getStatusCode().value(),
+                "status", 404,
+                "error", e.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, Object> handleResponseStatusException(ResponseStatusException e) {
+        return Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 404,
                 "error", e.getReason()
         );
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleOtherExceptions(Exception e) {
+    public Map<String, Object> handleGeneric(Exception e) {
         return Map.of(
+                "timestamp", LocalDateTime.now().toString(),
                 "status", 500,
-                "message", "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
+                "error", "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
         );
     }
 }
