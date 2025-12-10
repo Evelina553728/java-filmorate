@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.exception;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,12 +34,13 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public Map<String, Object> handleRSE(ResponseStatusException e) {
-        int status = e.getStatusCode().value();
+    public Map<String, Object> handleRSE(ResponseStatusException e, HttpServletResponse response) {
+
+        response.setStatus(e.getStatusCode().value());
 
         return Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", status,
+                "status", e.getStatusCode().value(),
                 "error", e.getReason()
         );
     }
