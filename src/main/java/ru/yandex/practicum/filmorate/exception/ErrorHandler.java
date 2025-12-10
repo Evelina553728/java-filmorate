@@ -33,11 +33,12 @@ public class ErrorHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, Object> handleResponseStatusException(ResponseStatusException e) {
+    public Map<String, Object> handleRSE(ResponseStatusException e) {
+        int status = e.getStatusCode().value();
+
         return Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", 404,
+                "status", status,
                 "error", e.getReason()
         );
     }
