@@ -5,19 +5,34 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-
 @RestControllerAdvice
 public class ErrorHandler {
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleValidationException(ValidationException e) {
-        return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", 400,
-                "error", e.getMessage()
+    public ErrorResponse handleValidationException(ValidationException e) {
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                e.getMessage()
+        );
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNotFoundException(NotFoundException e) {
+        return new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                e.getMessage()
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleInternalError(Exception e) {
+        return new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Произошла неожиданная ошибка. " +
+                        "Пожалуйста, проверьте корректность запроса или повторите попытку позже."
         );
     }
 }

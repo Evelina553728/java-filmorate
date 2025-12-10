@@ -1,55 +1,50 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
-import java.time.LocalDate;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
-@Slf4j
 public class FilmService {
 
-    private final Map<Integer, Film> films = new HashMap<>();
-    private int nextId = 1;
+    private final FilmStorage filmStorage;
 
-    private static final LocalDate MIN_RELEASE_DATE =
-            LocalDate.of(1895, 12, 28);
+    public FilmService(FilmStorage filmStorage) {
+        this.filmStorage = filmStorage;
+    }
 
     public Film create(Film film) {
-        validateFilm(film);
-        film.setId(nextId++);
-        films.put(film.getId(), film);
-        log.info("Создан фильм: {}", film);
-        return film;
+        return filmStorage.create(film);
     }
 
     public Film update(Film film) {
-        if (!films.containsKey(film.getId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Фильм с ID=" + film.getId() + " не найден"
-            );
-        }
-        validateFilm(film);
-        films.put(film.getId(), film);
-        log.info("Обновлён фильм: {}", film);
-        return film;
+        return filmStorage.update(film);
     }
 
     public List<Film> findAll() {
-        return new ArrayList<>(films.values());
+        return filmStorage.findAll();
     }
 
-    private void validateFilm(Film film) {
-        if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Дата релиза не может быть раньше 28 декабря 1895 года"
-            );
-        }
+    public void addLike(Long filmId, Long userId) {
+        Film film = filmStorage.findById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        film.getLikes().add(userId);
+    }
+
+    public void removeLike(Long filmId, Long userId) {
+        Film film = filmStorage.findById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        film.getLikes().remove(userId);
+    }
+
+    public List<Film> getPopular(int count) {
+        return filmStorage.findAll().stream()
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .limit(count)
+                .toList();
     }
 }
