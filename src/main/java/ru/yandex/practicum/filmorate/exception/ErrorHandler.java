@@ -1,14 +1,10 @@
 package ru.yandex.practicum.filmorate.exception;
 
-import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
-
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -16,25 +12,24 @@ import java.util.Map;
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
-        String msg = e.getBindingResult().getFieldError().getDefaultMessage();
+    public Map<String, Object> handleValidation(ValidationException e) {
         return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now(),
                 "status", 400,
-                "error", msg
+                "error", e.getMessage()
         );
     }
 
-    @ExceptionHandler(ConstraintViolationException.class)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleConstraintViolation(ConstraintViolationException e) {
-        String msg = e.getConstraintViolations().iterator().next().getMessage();
+    public Map<String, Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
         return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now(),
                 "status", 400,
-                "error", msg
+                "error", message
         );
     }
 
@@ -42,27 +37,17 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, Object> handleNotFound(NotFoundException e) {
         return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now(),
                 "status", 404,
                 "error", e.getMessage()
         );
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public Map<String, Object> handleRSE(ResponseStatusException e, HttpServletResponse response) {
-        response.setStatus(e.getStatusCode().value());
-        return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", e.getStatusCode().value(),
-                "error", e.getReason()
-        );
-    }
-
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleGeneric(Exception e) {
+    public Map<String, Object> handleOther(Throwable e) {
         return Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+                "timestamp", LocalDateTime.now(),
                 "status", 500,
                 "error", "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
         );
