@@ -1,95 +1,99 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
-    private final UserStorage userStorage;
+    private final Map<Long, User> users = new HashMap<>();
+    private long nextId = 1;
+
+    public List<User> findAll() {
+        return new ArrayList<>(users.values());
+    }
+
+    public User getById(long id) {
+        User user = users.get(id);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Пользователь с ID=" + id + " не найден");
+        }
+        return user;
+    }
 
     public User create(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
+        user.setId(nextId++);
+
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
         }
-        return userStorage.create(user);
+
+        users.put(user.getId(), user);
+        return user;
     }
 
     public User update(User user) {
-        if (user.getId() == null) {
-            throw new ValidationException("Id пользователя не может быть пустым");
-        }
-        getById(user.getId()); // проверяем, что существует — иначе 404
-        return userStorage.update(user);
-    }
-
-    public List<User> findAll() {
-        return userStorage.findAll();
-    }
-
-    public User getById(Long id) {
-        return userStorage.findById(id)
-                .orElseThrow(() ->
-                        new NotFoundException(String.format("Пользователь с ID=%d не найден", id)));
-    }
-
-    public User addFriend(Long id, Long friendId) {
-        if (id.equals(friendId)) {
-            throw new ValidationException("Нельзя добавить в друзья самого себя");
+        if (!users.containsKey(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Пользователь с ID=" + user.getId() + " не найден");
         }
 
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        }
+
+        users.put(user.getId(), user);
+        return user;
+    }
+
+    public User addFriend(long id, long friendId) {
         User user = getById(id);
         User friend = getById(friendId);
 
         user.getFriends().add(friendId);
         friend.getFriends().add(id);
 
-        userStorage.update(user);
-        userStorage.update(friend);
-
         return user;
     }
 
-    public User removeFriend(Long id, Long friendId) {
+    public User deleteFriend(long id, long friendId) {
         User user = getById(id);
         User friend = getById(friendId);
 
         user.getFriends().remove(friendId);
         friend.getFriends().remove(id);
 
-        userStorage.update(user);
-        userStorage.update(friend);
-
         return user;
     }
 
-    public List<User> getFriends(Long id) {
+    public List<User> getFriends(long id) {
         User user = getById(id);
 
-        return user.getFriends().stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        List<User> list = new ArrayList<>();
+        for (Long fid : user.getFriends()) {
+            list.add(getById(fid));
+        }
+        return list;
     }
 
-    public List<User> getCommonFriends(Long id, Long otherId) {
-        User user = getById(id);
-        User other = getById(otherId);
+    public List<User> getCommonFriends(long id, long otherId) {
+        User u1 = getById(id);
+        User u2 = getById(otherId);
 
-        Set<Long> common = new HashSet<>(user.getFriends());
-        common.retainAll(other.getFriends());
+        List<User> result = new ArrayList<>();
 
-        return common.stream()
-                .map(this::getById)
-                .collect(Collectors.toList());
+        for (Long friendId : u1.getFriends()) {
+            if (u2.getFriends().contains(friendId)) {
+                result.add(getById(friendId));
+            }
+        }
+        return result;
     }
 }

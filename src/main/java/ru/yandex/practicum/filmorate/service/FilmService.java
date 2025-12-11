@@ -21,23 +21,18 @@ public class FilmService {
         this.filmStorage = filmStorage;
     }
 
+    public Film getById(long id) {
+        return filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+    }
+
     public Film create(Film film) {
         validateFilm(film);
-
-        if (film.getLikes() == null) {
-            film.setLikes(new java.util.HashSet<>());
-        }
-
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
-
-        if (film.getLikes() == null) {
-            film.setLikes(new java.util.HashSet<>());
-        }
-
         return filmStorage.update(film);
     }
 
@@ -45,24 +40,18 @@ public class FilmService {
         return filmStorage.findAll();
     }
 
-    private Film getFilmOrThrow(Long id) {
-        return filmStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с ID=" + id + " не найден"));
-    }
-
-    public void addLike(Long filmId, Long userId) {
-        Film film = getFilmOrThrow(filmId);
+    public void addLike(long filmId, long userId) {
+        Film film = getById(filmId);
         film.getLikes().add(userId);
     }
 
-    public void removeLike(Long filmId, Long userId) {
-        Film film = getFilmOrThrow(filmId);
+    public void removeLike(long filmId, long userId) {
+        Film film = getById(filmId);
         film.getLikes().remove(userId);
     }
 
     public List<Film> getPopular(int count) {
-        return filmStorage.findAll()
-                .stream()
+        return filmStorage.findAll().stream()
                 .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
                 .limit(count)
                 .toList();
@@ -70,9 +59,7 @@ public class FilmService {
 
     private void validateFilm(Film film) {
         if (film.getReleaseDate().isBefore(CINEMA_BIRTH)) {
-            throw new ValidationException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года"
-            );
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
     }
 }
