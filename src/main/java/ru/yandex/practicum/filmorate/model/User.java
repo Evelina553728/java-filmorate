@@ -1,15 +1,15 @@
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
-import lombok.Builder;
-import lombok.Data;
-
+import lombok.*;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     private long id;
