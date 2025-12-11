@@ -30,27 +30,26 @@ public class UserService {
 
     public User create(User user) {
         user.setId(nextId++);
-
         if (user.getFriends() == null) {
             user.setFriends(new HashSet<>());
         }
-
         users.put(user.getId(), user);
         return user;
     }
 
     public User update(User user) {
-        if (!users.containsKey(user.getId())) {
+        User existing = users.get(user.getId());
+        if (existing == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "Пользователь с ID=" + user.getId() + " не найден");
         }
 
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        }
+        existing.setEmail(user.getEmail());
+        existing.setLogin(user.getLogin());
+        existing.setName(user.getName());
+        existing.setBirthday(user.getBirthday());
 
-        users.put(user.getId(), user);
-        return user;
+        return existing;
     }
 
     public User addFriend(long id, long friendId) {

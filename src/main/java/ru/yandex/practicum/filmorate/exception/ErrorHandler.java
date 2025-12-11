@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -13,41 +13,43 @@ import java.util.Map;
 public class ErrorHandler {
 
     @ExceptionHandler(ValidationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleValidationException(ValidationException e) {
-        return Map.of(
+    public ResponseEntity<Map<String, Object>> handleValidation(ValidationException e) {
+        Map<String, Object> body = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", 400,
+                "status", HttpStatus.BAD_REQUEST.value(),
                 "error", e.getMessage()
         );
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, Object> handleNotFound(NotFoundException e) {
-        return Map.of(
+    public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException e) {
+        Map<String, Object> body = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", 404,
+                "status", HttpStatus.NOT_FOUND.value(),
                 "error", e.getMessage()
         );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public Map<String, Object> handleRSE(ResponseStatusException e) {
-        return Map.of(
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException e) {
+        HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
+        Map<String, Object> body = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", e.getStatusCode().value(),
+                "status", status.value(),
                 "error", e.getReason()
         );
+        return new ResponseEntity<>(body, status);
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, Object> handleGeneric(Exception e) {
-        return Map.of(
+    public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
+        Map<String, Object> body = Map.of(
                 "timestamp", LocalDateTime.now().toString(),
-                "status", 500,
+                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "error", "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
         );
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
