@@ -5,6 +5,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -40,6 +41,16 @@ public class ErrorHandler {
                 "timestamp", LocalDateTime.now(),
                 "status", 404,
                 "error", e.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, Object> handleResponseStatusException(ResponseStatusException e) {
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", e.getStatusCode().value(),
+                "error", e.getReason()
         );
     }
 
