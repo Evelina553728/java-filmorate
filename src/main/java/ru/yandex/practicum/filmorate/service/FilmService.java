@@ -14,7 +14,8 @@ import java.util.List;
 public class FilmService {
 
     private final FilmStorage filmStorage;
-    private static final LocalDate MIN_DATE = LocalDate.of(1895, 12, 28);
+
+    private static final LocalDate CINEMA_BIRTH = LocalDate.of(1895, 12, 28);
 
     public FilmService(FilmStorage filmStorage) {
         this.filmStorage = filmStorage;
@@ -22,11 +23,21 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+
+        if (film.getLikes() == null) {
+            film.setLikes(new java.util.HashSet<>());
+        }
+
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
+
+        if (film.getLikes() == null) {
+            film.setLikes(new java.util.HashSet<>());
+        }
+
         return filmStorage.update(film);
     }
 
@@ -34,28 +45,34 @@ public class FilmService {
         return filmStorage.findAll();
     }
 
+    private Film getFilmOrThrow(Long id) {
+        return filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID=" + id + " не найден"));
+    }
+
     public void addLike(Long filmId, Long userId) {
-        Film film = filmStorage.findById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        Film film = getFilmOrThrow(filmId);
         film.getLikes().add(userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
-        Film film = filmStorage.findById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
+        Film film = getFilmOrThrow(filmId);
         film.getLikes().remove(userId);
     }
 
     public List<Film> getPopular(int count) {
-        return filmStorage.findAll().stream()
+        return filmStorage.findAll()
+                .stream()
                 .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
                 .limit(count)
                 .toList();
     }
 
     private void validateFilm(Film film) {
-        if (film.getReleaseDate().isBefore(MIN_DATE)) {
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        if (film.getReleaseDate().isBefore(CINEMA_BIRTH)) {
+            throw new ValidationException(
+                    "Дата релиза не может быть раньше 28 декабря 1895 года"
+            );
         }
     }
 }
