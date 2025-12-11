@@ -1,55 +1,52 @@
 package ru.yandex.practicum.filmorate.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Objects;
 
 @RestControllerAdvice
 public class ErrorHandler {
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(ValidationException e) {
-        Map<String, Object> body = Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.BAD_REQUEST.value(),
-                "error", e.getMessage()
-        );
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    public Map<String, Object> handleValidation(ValidationException e) {
+        return buildError(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        String message = Objects.requireNonNull(e.getFieldError()).getDefaultMessage();
+        return buildError(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Map<String, Object> handleConstraintViolation(ConstraintViolationException e) {
+        return buildError(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(NotFoundException e) {
-        Map<String, Object> body = Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.NOT_FOUND.value(),
-                "error", e.getMessage()
-        );
-        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    public Map<String, Object> handleNotFound(NotFoundException e) {
+        return buildError(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException e) {
-        HttpStatus status = HttpStatus.valueOf(e.getStatusCode().value());
-        Map<String, Object> body = Map.of(
-                "timestamp", LocalDateTime.now().toString(),
+    @ExceptionHandler(Throwable.class)
+    public Map<String, Object> handleGeneric(Throwable e) {
+        return buildError(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
+        );
+    }
+
+    private Map<String, Object> buildError(HttpStatus status, String message) {
+        return Map.of(
                 "status", status.value(),
-                "error", e.getReason()
+                "timestamp", LocalDateTime.now(),
+                "error", message
         );
-        return new ResponseEntity<>(body, status);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
-        Map<String, Object> body = Map.of(
-                "timestamp", LocalDateTime.now().toString(),
-                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "error", "Произошла неожиданная ошибка. Пожалуйста, проверьте корректность запроса или повторите попытку позже."
-        );
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

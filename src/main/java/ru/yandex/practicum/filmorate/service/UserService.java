@@ -1,98 +1,101 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
-@Slf4j
+@RequiredArgsConstructor
 public class UserService {
 
-    private final Map<Long, User> users = new HashMap<>();
-    private long nextId = 1;
+    private final UserStorage userStorage;
 
     public List<User> findAll() {
-        return new ArrayList<>(users.values());
+        return userStorage.findAll();
     }
 
     public User getById(long id) {
-        User user = users.get(id);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Пользователь с ID=" + id + " не найден");
-        }
-        return user;
+        return userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID=" + id + " не найден"));
     }
 
     public User create(User user) {
-        user.setId(nextId++);
+        validateUser(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         if (user.getFriends() == null) {
             user.setFriends(new HashSet<>());
         }
-        users.put(user.getId(), user);
-        return user;
+        return userStorage.create(user);
     }
 
     public User update(User user) {
-        User existing = users.get(user.getId());
-        if (existing == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Пользователь с ID=" + user.getId() + " не найден");
+        validateUser(user);
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
-
-        existing.setEmail(user.getEmail());
-        existing.setLogin(user.getLogin());
-        existing.setName(user.getName());
-        existing.setBirthday(user.getBirthday());
-
-        return existing;
+        if (user.getFriends() == null) {
+            user.setFriends(new HashSet<>());
+        }
+        return userStorage.update(user);
     }
 
-    public User addFriend(long id, long friendId) {
+    public void addFriend(long id, long friendId) {
+        if (id == friendId) {
+            throw new ValidationException("Нельзя добавить в друзья самого себя");
+        }
+
         User user = getById(id);
         User friend = getById(friendId);
 
         user.getFriends().add(friendId);
         friend.getFriends().add(id);
-
-        return user;
     }
 
-    public User deleteFriend(long id, long friendId) {
+    public void deleteFriend(long id, long friendId) {
         User user = getById(id);
         User friend = getById(friendId);
 
         user.getFriends().remove(friendId);
         friend.getFriends().remove(id);
-
-        return user;
     }
 
     public List<User> getFriends(long id) {
         User user = getById(id);
-
-        List<User> list = new ArrayList<>();
-        for (Long fid : user.getFriends()) {
-            list.add(getById(fid));
+        if (user.getFriends() == null || user.getFriends().isEmpty()) {
+            return List.of();
         }
-        return list;
+
+        return user.getFriends().stream()
+                .map(this::getById)
+                .collect(Collectors.toList());
     }
 
     public List<User> getCommonFriends(long id, long otherId) {
         User u1 = getById(id);
         User u2 = getById(otherId);
 
-        List<User> result = new ArrayList<>();
+        Set<Long> commonIds = new HashSet<>(u1.getFriends());
+        commonIds.retainAll(u2.getFriends());
 
-        for (Long friendId : u1.getFriends()) {
-            if (u2.getFriends().contains(friendId)) {
-                result.add(getById(friendId));
-            }
+        return commonIds.stream()
+                .map(this::getById)
+                .collect(Collectors.toList());
+    }
+
+    private void validateUser(User user) {
+        if (user.getLogin() != null && user.getLogin().contains(" ")) {
+            throw new ValidationException("Логин не может содержать пробелы");
         }
-        return result;
+        if (user.getBirthday() != null && user.getBirthday().isAfter(java.time.LocalDate.now())) {
+            throw new ValidationException("Дата рождения должна быть в прошлом");
+        }
     }
 }
