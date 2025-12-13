@@ -51,6 +51,7 @@ public class FilmService {
         log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
 
         Film film = getById(filmId);
+        userService.getById(userId);
         film.getLikes().remove(userId);
 
         log.info("Лайк удалён: filmId={}, userId={}", filmId, userId);
