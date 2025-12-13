@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FilmService {
 
     private final FilmStorage filmStorage;
@@ -46,9 +48,12 @@ public class FilmService {
     }
 
     public void removeLike(long filmId, long userId) {
+        log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
+
         Film film = getById(filmId);
-        userService.getById(userId);
         film.getLikes().remove(userId);
+
+        log.info("Лайк удалён: filmId={}, userId={}", filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
