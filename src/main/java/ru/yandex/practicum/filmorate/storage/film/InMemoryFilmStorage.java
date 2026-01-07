@@ -37,4 +37,28 @@ public class InMemoryFilmStorage implements FilmStorage {
         films.put(film.getId(), film);
         return film;
     }
+
+    @Override
+    public void addLike(long filmId, long userId) {
+        Film film = findById(filmId).orElseThrow();
+        film.getLikes().add(userId);
+    }
+
+    @Override
+    public void removeLike(long filmId, long userId) {
+        Film film = findById(filmId).orElseThrow();
+        film.getLikes().remove(userId);
+    }
+
+    @Override
+    public List<Film> findPopular(int count) {
+        return findAll().stream()
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    if (cmp != 0) return cmp;
+                    return Long.compare(a.getId(), b.getId()); // стабильность при равенстве
+                })
+                .limit(count)
+                .toList();
+    }
 }
