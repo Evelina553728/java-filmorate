@@ -1,11 +1,11 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -78,43 +78,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public void addLike(long filmId, long userId) {
-        jdbcTemplate.update(
-                "MERGE INTO likes (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)",
-                filmId, userId
-        );
-    }
-
-    @Override
-    public void removeLike(long filmId, long userId) {
-        jdbcTemplate.update(
-                "DELETE FROM likes WHERE film_id = ? AND user_id = ?",
-                filmId, userId
-        );
-    }
-
-    @Override
-    public List<Film> findPopular(int count) {
-        List<Film> films = jdbcTemplate.query(
-                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name " +
-                        "FROM films f " +
-                        "LEFT JOIN mpa m ON f.mpa_id = m.id " +
-                        "LEFT JOIN likes l ON f.id = l.film_id " +
-                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name " +
-                        "ORDER BY COUNT(l.user_id) DESC, f.id ASC " +
-                        "LIMIT ?",
-                FILM_MAPPER,
-                count
-        );
-
-        for (Film film : films) {
-            fillGenres(film);
-            fillLikes(film);
-        }
-        return films;
-    }
-
-    @Override
     public Film create(Film film) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         Integer mpaId = (film.getMpa() == null) ? null : film.getMpa().getId();
@@ -164,11 +127,37 @@ public class FilmDbStorage implements FilmStorage {
 
         fillGenres(film);
         fillLikes(film);
+
         if (film.getMpa() != null) {
-            String name = jdbcTemplate.queryForObject("SELECT name FROM mpa WHERE id = ?", String.class, film.getMpa().getId());
+            String name = jdbcTemplate.queryForObject(
+                    "SELECT name FROM mpa WHERE id = ?",
+                    String.class,
+                    film.getMpa().getId()
+            );
             film.getMpa().setName(name);
         }
         return film;
+    }
+
+    @Override
+    public List<Film> findPopular(int count) {
+        List<Film> films = jdbcTemplate.query(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name " +
+                        "FROM films f " +
+                        "LEFT JOIN mpa m ON f.mpa_id = m.id " +
+                        "LEFT JOIN likes l ON l.film_id = f.id " +
+                        "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name " +
+                        "ORDER BY COUNT(l.user_id) DESC, f.id ASC " +
+                        "LIMIT ?",
+                FILM_MAPPER,
+                count
+        );
+
+        for (Film film : films) {
+            fillGenres(film);
+            fillLikes(film);
+        }
+        return films;
     }
 
     private void updateGenres(long filmId, Set<Genre> genres) {

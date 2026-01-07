@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.storage.friend.FriendStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,34 +31,41 @@ public class UserService {
     }
 
     public User update(User user) {
-        getById(user.getId());
+        userStorage.findById(user.getId())
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         return userStorage.update(user);
     }
 
-    public void addFriend(long userId, long friendId) {
-        getById(userId);
+    public void addFriend(long id, long friendId) {
+        getById(id);
         getById(friendId);
-        friendStorage.addFriend(userId, friendId);
+        friendStorage.addFriend(id, friendId);
     }
 
-    public void deleteFriend(long userId, long friendId) {
-        getById(userId);
+    public void deleteFriend(long id, long friendId) {
+        getById(id);
         getById(friendId);
-        friendStorage.deleteFriend(userId, friendId);
+        friendStorage.deleteFriend(id, friendId);
     }
 
-    public List<User> getFriends(long userId) {
-        getById(userId);
-        return friendStorage.findFriendIds(userId).stream()
+    public List<User> getFriends(long id) {
+        getById(id);
+        return friendStorage.findFriendIds(id).stream()
                 .map(this::getById)
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    public List<User> getCommonFriends(long userId, long otherId) {
-        getById(userId);
+    public List<User> getCommonFriends(long id, long otherId) {
+        getById(id);
         getById(otherId);
-        return friendStorage.findCommonFriendIds(userId, otherId).stream()
+
+        var first = friendStorage.findFriendIds(id);
+        var second = friendStorage.findFriendIds(otherId);
+
+        first.retainAll(second);
+
+        return first.stream()
                 .map(this::getById)
-                .toList();
+                .collect(Collectors.toList());
     }
 }

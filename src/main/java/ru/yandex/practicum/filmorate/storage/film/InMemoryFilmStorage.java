@@ -1,16 +1,16 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new HashMap<>();
-    private long nextId = 1;
+    private long idSeq = 1;
 
     @Override
     public List<Film> findAll() {
@@ -24,41 +24,32 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        film.setId(nextId++);
-        films.put(film.getId(), film);
-        return film;
-    }
-
-    @Override
-    public Film update(Film film) {
-        if (!films.containsKey(film.getId())) {
-            throw new NotFoundException("Фильм не найден");
+        film.setId(idSeq++);
+        if (film.getLikes() == null) {
+            film.setLikes(new HashSet<>());
+        }
+        if (film.getGenres() == null) {
+            film.setGenres(new LinkedHashSet<>());
         }
         films.put(film.getId(), film);
         return film;
     }
 
     @Override
-    public void addLike(long filmId, long userId) {
-        Film film = findById(filmId).orElseThrow();
-        film.getLikes().add(userId);
-    }
-
-    @Override
-    public void removeLike(long filmId, long userId) {
-        Film film = findById(filmId).orElseThrow();
-        film.getLikes().remove(userId);
+    public Film update(Film film) {
+        films.put(film.getId(), film);
+        return film;
     }
 
     @Override
     public List<Film> findPopular(int count) {
-        return findAll().stream()
-                .sorted((a, b) -> {
-                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
-                    if (cmp != 0) return cmp;
-                    return Long.compare(a.getId(), b.getId()); // стабильность при равенстве
-                })
+        return films.values().stream()
+                .sorted(
+                        Comparator.comparingInt((Film f) -> f.getLikes() == null ? 0 : f.getLikes().size())
+                                .reversed()
+                                .thenComparingLong(Film::getId)
+                )
                 .limit(count)
-                .toList();
+                .collect(Collectors.toList());
     }
 }
