@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 import java.util.*;
 
@@ -10,7 +9,7 @@ import java.util.*;
 public class InMemoryUserStorage implements UserStorage {
 
     private final Map<Long, User> users = new HashMap<>();
-    private long nextId = 1;
+    private long idCounter = 1;
 
     @Override
     public List<User> findAll() {
@@ -24,27 +23,43 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User create(User user) {
-        user.setId(nextId++);
-
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        }
-
+        user.setId(idCounter++);
+        user.setFriends(new HashSet<>());
         users.put(user.getId(), user);
         return user;
     }
 
     @Override
     public User update(User user) {
-        if (!users.containsKey(user.getId())) {
-            throw new NotFoundException("Пользователь не найден");
-        }
-
-        if (user.getFriends() == null) {
-            user.setFriends(new HashSet<>());
-        }
-
         users.put(user.getId(), user);
         return user;
+    }
+
+    @Override
+    public void addFriend(long userId, long friendId) {
+        users.get(userId).getFriends().add(friendId);
+    }
+
+    @Override
+    public void deleteFriend(long userId, long friendId) {
+        users.get(userId).getFriends().remove(friendId);
+    }
+
+    @Override
+    public List<User> getFriends(long userId) {
+        return users.get(userId).getFriends().stream()
+                .map(users::get)
+                .toList();
+    }
+
+    @Override
+    public List<User> getCommonFriends(long userId, long otherId) {
+        Set<Long> first = users.get(userId).getFriends();
+        Set<Long> second = users.get(otherId).getFriends();
+
+        return first.stream()
+                .filter(second::contains)
+                .map(users::get)
+                .toList();
     }
 }

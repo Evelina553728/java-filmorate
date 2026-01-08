@@ -145,7 +145,7 @@ public class FilmDbStorage implements FilmStorage {
                 "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name " +
                         "FROM films f " +
                         "LEFT JOIN mpa m ON f.mpa_id = m.id " +
-                        "LEFT JOIN likes l ON l.film_id = f.id " +
+                        "LEFT JOIN likes l ON f.id = l.film_id " +
                         "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name " +
                         "ORDER BY COUNT(l.user_id) DESC, f.id ASC " +
                         "LIMIT ?",

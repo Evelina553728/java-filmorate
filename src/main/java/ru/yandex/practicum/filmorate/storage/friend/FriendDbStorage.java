@@ -43,11 +43,17 @@ public class FriendDbStorage implements FriendStorage {
 
     @Override
     public void deleteFriend(long userId, long friendId) {
-        jdbcTemplate.update("DELETE FROM friends WHERE user_id = ? AND friend_id = ?", userId, friendId);
+        jdbcTemplate.update(
+                "DELETE FROM friends WHERE user_id = ? AND friend_id = ?",
+                userId, friendId
+        );
 
         jdbcTemplate.update(
-                "UPDATE friends SET status = ? WHERE user_id = ? AND friend_id = ? AND status = ?",
-                FriendshipStatus.UNCONFIRMED.name(), friendId, userId, FriendshipStatus.CONFIRMED.name()
+                "UPDATE friends SET status = ? " +
+                        "WHERE user_id = ? AND friend_id = ? AND status = ?",
+                FriendshipStatus.UNCONFIRMED.name(),
+                friendId, userId,
+                FriendshipStatus.CONFIRMED.name()
         );
     }
 

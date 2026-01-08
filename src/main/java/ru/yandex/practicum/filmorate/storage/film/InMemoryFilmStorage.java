@@ -43,13 +43,12 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public List<Film> findPopular(int count) {
-        return films.values().stream()
-                .sorted(
-                        Comparator.comparingInt((Film f) -> f.getLikes() == null ? 0 : f.getLikes().size())
-                                .reversed()
-                                .thenComparingLong(Film::getId)
-                )
+        return findAll().stream()
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return (cmp != 0) ? cmp : Long.compare(a.getId(), b.getId()); // стабильность
+                })
                 .limit(count)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
