@@ -4,7 +4,6 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryFilmStorage implements FilmStorage {
