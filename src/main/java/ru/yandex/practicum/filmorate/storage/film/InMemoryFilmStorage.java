@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.*;
@@ -10,7 +9,7 @@ import java.util.*;
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new HashMap<>();
-    private long nextId = 1;
+    private long idSeq = 1;
 
     @Override
     public List<Film> findAll() {
@@ -24,17 +23,31 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        film.setId(nextId++);
+        film.setId(idSeq++);
+        if (film.getLikes() == null) {
+            film.setLikes(new HashSet<>());
+        }
+        if (film.getGenres() == null) {
+            film.setGenres(new LinkedHashSet<>());
+        }
         films.put(film.getId(), film);
         return film;
     }
 
     @Override
     public Film update(Film film) {
-        if (!films.containsKey(film.getId())) {
-            throw new NotFoundException("Фильм не найден");
-        }
         films.put(film.getId(), film);
         return film;
+    }
+
+    @Override
+    public List<Film> findPopular(int count) {
+        return findAll().stream()
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getLikes().size(), a.getLikes().size());
+                    return (cmp != 0) ? cmp : Long.compare(a.getId(), b.getId()); // стабильность
+                })
+                .limit(count)
+                .toList();
     }
 }
